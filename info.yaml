@@ -1,7 +1,7 @@
 # Tiny Tapeout project information
 project:
   title:        "NanoCPU-P (Pipelined RAM CPU)"      # Project title
-  author:       "AG3-Emirates Chip Competence"      # Your name
+  author:       "AG4-Emirates Chip Competence"      # Your name
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
   description:  "8-bit pipelined RAM-based programmable CPU with debug bus"      # One line description of what your project does
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
