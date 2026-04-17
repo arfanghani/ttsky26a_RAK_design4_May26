@@ -12,12 +12,33 @@ module tt_um_nano_cpu_p (
 );
 
     // =========================
-    // PROGRAM MEMORY (ROM)
+    // PROGRAM MEMORY
     // =========================
     reg [7:0] mem [0:31];
+    reg [7:0] mem_dump [0:31];
     integer i;
 
+    // =========================
+    // CPU STATE (IMPORTANT: INIT TO AVOID X)
+    // =========================
+    reg [4:0] pc;
+    reg [7:0] instr;
+    reg [7:0] R0, R1, R2, R3;
+
+    wire [7:0] fetched;
+    wire [3:0] opcode;
+
+    assign fetched = mem[pc];
+    assign opcode  = instr[7:4];
+
+    // =========================
+    // MEMORY INITIALIZATION
+    // =========================
     initial begin
+        pc = 0;
+        instr = 0;
+        R0 = 0; R1 = 0; R2 = 0; R3 = 0;
+
         mem[0] = 8'h10;
         mem[1] = 8'h20;
         mem[2] = 8'h30;
@@ -26,19 +47,10 @@ module tt_um_nano_cpu_p (
 
         for (i = 5; i < 32; i = i + 1)
             mem[i] = 8'h00;
+
+        for (i = 0; i < 32; i = i + 1)
+            mem_dump[i] = 0;
     end
-
-    // =========================
-    // CPU STATE
-    // =========================
-    reg [4:0] pc;
-    reg [7:0] instr;
-
-    reg [7:0] R0, R1, R2, R3;
-
-    // Fetch + decode
-    wire [7:0] fetched = mem[pc];
-    wire [3:0] opcode  = fetched[7:4];
 
     // =========================
     // CPU CORE
@@ -47,12 +59,21 @@ module tt_um_nano_cpu_p (
         if (!rst_n) begin
             pc    <= 0;
             instr <= 0;
-            R0 <= 0; R1 <= 0; R2 <= 0; R3 <= 0;
+            R0    <= 0;
+            R1    <= 0;
+            R2    <= 0;
+            R3    <= 0;
 
         end else if (ena) begin
 
-            // fetch
+            // safe fetch (pc is always valid due to reset)
             instr <= fetched;
+
+            // safe PC loop
+            if (pc >= 5'd4)
+                pc <= 0;
+            else
+                pc <= pc + 1;
 
             // execute
             case (opcode)
@@ -63,14 +84,14 @@ module tt_um_nano_cpu_p (
                 default: ;
             endcase
 
-            // PC update
-            pc <= (pc == 4) ? 0 : pc + 1;
-
+            // snapshot memory for waveform
+            for (i = 0; i < 32; i = i + 1)
+                mem_dump[i] <= mem[i];
         end
     end
 
     // =========================
-    // DEBUG OUTPUT SELECT
+    // DEBUG OUTPUT
     // =========================
     always @(*) begin
         case (ui_in[4:3])
@@ -81,8 +102,8 @@ module tt_um_nano_cpu_p (
         endcase
     end
 
-    assign uio_out = 8'b0;
-    assign uio_oe  = 8'b0;
+    assign uio_out = 8'h00;
+    assign uio_oe  = 8'h00;
 
 endmodule
 
