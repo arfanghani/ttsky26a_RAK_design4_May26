@@ -1,49 +1,61 @@
+`timescale 1ns/1ps
 `default_nettype none
-`timescale 1ns / 1ps
 
-/* This testbench just instantiates the module and makes some convenient wires
-   that can be driven / tested by the cocotb test.py.
-*/
-module tb ();
+module tb;
 
-  // Dump the signals to a FST file. You can view it with gtkwave or surfer.
-  initial begin
-    $dumpfile("tb.fst");
-    $dumpvars(0, tb);
-    #1;
-  end
+    reg clk;
+    reg rst_n;
+    reg ena;
+    reg [7:0] ui_in;
+    reg [7:0] uio_in;
 
-  // Wire up the inputs and outputs:
-  reg clk;
-  reg rst_n;
-  reg ena;
-  reg [7:0] ui_in;
-  reg [7:0] uio_in;
-  wire [7:0] uo_out;
-  wire [7:0] uio_out;
-  wire [7:0] uio_oe;
-`ifdef GL_TEST
-  wire VPWR = 1'b1;
-  wire VGND = 1'b0;
-`endif
+    wire [7:0] uo_out;
+    wire [7:0] uio_out;
+    wire [7:0] uio_oe;
 
-  // Replace tt_um_example with your module name:
-  tt_um_example user_project (
+    tt_um_nano_cpu_p dut (
+        .ui_in(ui_in),
+        .uio_in(uio_in),
+        .uo_out(uo_out),
+        .uio_out(uio_out),
+        .uio_oe(uio_oe),
+        .ena(ena),
+        .clk(clk),
+        .rst_n(rst_n)
+    );
 
-      // Include power ports for the Gate Level test:
-`ifdef GL_TEST
-      .VPWR(VPWR),
-      .VGND(VGND),
-`endif
+    always #10 clk = ~clk;
 
-      .ui_in  (ui_in),    // Dedicated inputs
-      .uo_out (uo_out),   // Dedicated outputs
-      .uio_in (uio_in),   // IOs: Input path
-      .uio_out(uio_out),  // IOs: Output path
-      .uio_oe (uio_oe),   // IOs: Enable path (active high: 0=input, 1=output)
-      .ena    (ena),      // enable - goes high when design is selected
-      .clk    (clk),      // clock
-      .rst_n  (rst_n)     // not reset
-  );
+    initial begin
+        $dumpfile("tb.vcd");
+        $dumpvars(0, tb);
+
+        clk = 0;
+        ena = 1;
+        rst_n = 0;
+        ui_in = 0;
+        uio_in = 0;
+
+        repeat(5) @(posedge clk);
+        rst_n = 1;
+
+        // Program a tiny loop:
+        // LOADI R0,1
+        // ADD R0,R0
+        // JMP 0
+
+        ui_in[2] = 1; // program mode
+        ui_in[1] = 1; // write enable
+        ui_in[0] = 1; // serial bit (dummy demo stream)
+
+        repeat(10) @(posedge clk);
+
+        ui_in[2] = 0; // run mode
+        ui_in[1] = 0;
+
+        repeat(100) @(posedge clk);
+
+        $finish;
+    end
 
 endmodule
